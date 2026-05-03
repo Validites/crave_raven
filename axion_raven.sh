@@ -3,11 +3,9 @@
 # =========================================================
 # CONFIGURATION
 # =========================================================
-# Ensure .env is sourced to load BOT and CHAT variables
-[ -f .env ] && source .env
 
-TG_BOT_TOKEN="${BOT}"
-TG_CHAT_ID="${CHAT}"
+TG_BOT_TOKEN="7302600160:AAFNxEr7Tma0zBgkMC2IIF39gcuT2F6ZT5Q"
+TG_CHAT_ID="7305843184"
 DEVICE="raven"
 ROM_NAME="AxionAOSP"
 ANDROID_VERSION="16"

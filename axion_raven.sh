@@ -78,7 +78,8 @@ EOF
     /opt/crave/resync.sh
     repo sync -c --force-sync --no-tags --no-clone-bundle -j$(nproc) -q
 
-    echo ">>>> Fetching Git LFS..."[ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
+    echo ">>>> Fetching Git LFS..."
+    [ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh

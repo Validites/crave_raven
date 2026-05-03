@@ -100,7 +100,7 @@ EOF
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh
-    axion ${DEVICE} user core
+    axion ${DEVICE} user gms
     mka installclean
 
     echo ">>>> Compiling..."

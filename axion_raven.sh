@@ -28,7 +28,7 @@ gofile_upload() {
     local file="$1"
     local server
     
-    # Ensure jq is installed (Crave containers might lack it)
+    # Ensure jq is installed
     if ! command -v jq &> /dev/null; then
         mkdir -p ~/bin
         curl -sL -o ~/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7/jq-linux64
@@ -52,18 +52,27 @@ Device: ${DEVICE}
 Android: ${ANDROID_VERSION}
 Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
     
-    echo ">>>> Cleaning up workspace..."
-    # Included raviole in cleanup to prevent conflicts
-    rm -rf .repo/local_manifests {device,vendor,kernel}/google/{raven,raviole,gs101} hardware/google/pixel
+    echo ">>>> Aggressive Cleanup..."
+    # Wipe device, vendor, and kernel trees completely to force a fresh download
+    rm -rf device/google/raven device/google/raviole device/google/gs101 hardware/google/pixel
+    rm -rf vendor/google/raven vendor/google/raviole vendor/lineage-priv
+    rm -rf kernel/google/raviole kernel/google/gs101
     
-    # FIX 1: Create the keys directory so the build doesn't throw a Permission Denied error
+    # Destroy all old manifest configurations so repo is forced to start fresh
+    rm -rf .repo/local_manifests
+    
+    # Recreate the keys folder
     mkdir -p vendor/lineage-priv/keys
 
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
-    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests
     
-    # FIX 2: Inject TheMuppets so we actually get the vendor blobs!
+    # Download official pixel manifests
+    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
+    
+    # Create the folder explicitly (just in case git clone fails)
+    mkdir -p .repo/local_manifests
+
     echo ">>>> Injecting proprietary vendor manifests..."
     cat <<EOF > .repo/local_manifests/raven_vendor.xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,15 +80,22 @@ Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
   <remote name="muppets" fetch="https://gitlab.com/the-muppets" />
   <project name="proprietary_vendor_google_raven" path="vendor/google/raven" remote="muppets" clone-depth="1" />
   <project name="proprietary_vendor_google_raviole" path="vendor/google/raviole" remote="muppets" clone-depth="1" />
+  <project name="proprietary_vendor_google_camera" path="vendor/google/camera" remote="muppets" clone-depth="1" />
 </manifest>
 EOF
     
-    echo ">>>> Syncing repositories..."
-    /opt/crave/resync.sh
-    repo sync -c --force-sync --no-tags --no-clone-bundle -j$(nproc) -q
+    echo ">>>> Syncing repositories (This should take a few minutes)..."
+    # Added --force-remove-dirty to ensure repo cleans up corrupt projects
+    repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j$(nproc)
 
-    echo ">>>> Fetching Git LFS..."
-    [ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
+    echo ">>>> Fetching Git LFS..."[ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
+
+    echo ">>>> Verifying vendor tree exists..."
+    if[ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
+        echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is still missing!"
+        send_msg "*Build Failed* - Vendor blobs did not sync."
+        exit 1
+    fi
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh

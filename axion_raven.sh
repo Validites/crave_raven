@@ -68,14 +68,13 @@ Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
     
     # Download official pixel manifests
-    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.0 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
+    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
     
     echo ">>>> Syncing repositories (This should take a few minutes)..."
     # Added --force-remove-dirty to ensure repo cleans up corrupt projects
     repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j$(nproc)
 
-    echo ">>>> Fetching Git LFS..."
-    [ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
+    echo ">>>> Fetching Git LFS..."[ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
 
     echo ">>>> Verifying vendor tree exists..."
     if[ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
@@ -111,7 +110,7 @@ Duration: ${DURATION} minutes"
     if [[ $BUILD_STATUS -eq 0 ]]; then
         echo ">>>> Build successful, uploading to GoFile..."
         ROM_ZIP=$(ls -t out/target/product/${DEVICE}/*.zip 2>/dev/null | head -n 1)
-        if[ -f "$ROM_ZIP" ]; then
+        if [ -f "$ROM_ZIP" ]; then
             LINK=$(gofile_upload "$ROM_ZIP")
             send_msg "*Artifact Uploaded*
 File: $(basename "$ROM_ZIP")

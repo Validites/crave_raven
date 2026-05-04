@@ -68,7 +68,7 @@ Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
     
     # Download official pixel manifests
-    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
+    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.0 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
     
     echo ">>>> Syncing repositories (This should take a few minutes)..."
     # Added --force-remove-dirty to ensure repo cleans up corrupt projects

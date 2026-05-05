@@ -77,7 +77,7 @@ Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
     echo ">>>> Fetching Git LFS..."[ -d vendor/google/raven ] && (cd vendor/google/raven && git lfs fetch --all && git lfs checkout)
 
     echo ">>>> Verifying vendor tree exists..."
-    if[ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
+    if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
         echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is still missing!"
         send_msg "*Build Failed* - Vendor blobs did not sync."
         exit 1

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # =========================================================
 # CONFIGURATION
@@ -8,7 +9,6 @@ TG_CHAT_ID="7305843184"
 DEVICE="raven"
 ROM_NAME="AxionAOSP"
 ANDROID_VERSION="16"
-
 export TZ="Europe/London"
 export BUILD_USERNAME="LW"
 export BUILD_HOSTNAME="aura"
@@ -17,27 +17,42 @@ export BUILD_HOSTNAME="aura"
 # FUNCTIONS
 # =========================================================
 send_msg() {
-  curl -s -X POST "https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage" \
-    -d "chat_id=${TG_CHAT_ID}" \
-    --data-urlencode "text=$1" \
-    -d "parse_mode=Markdown" \
-    -d "disable_web_page_preview=true" > /dev/null
+    curl -s \
+        -d "chat_id=${TG_CHAT_ID}" \
+        --data-urlencode "text=$1" \
+        -d "parse_mode=Markdown" \
+        -d "disable_web_page_preview=true" \
+        "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" > /dev/null
 }
 
 gofile_upload() {
     local file="$1"
     local server
-    
-    # Ensure jq is installed
+    local link
+
     if ! command -v jq &> /dev/null; then
+        echo ">>>> jq not found, installing..."
         mkdir -p ~/bin
-        curl -sL -o ~/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7/jq-linux64
+        curl -sL -o ~/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7/jq-linux-amd64
         chmod +x ~/bin/jq
-        export PATH=$HOME/bin:$PATH
+        export PATH="$HOME/bin:$PATH"
     fi
-    
+
     server=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
-    curl -s -F "file=@${file}" "https://${server}.gofile.io/uploadFile" | jq -r '.data.downloadPage'
+    if [ -z "$server" ] || [ "$server" = "null" ]; then
+        echo "ERROR: Could not resolve GoFile server."
+        send_msg "*Upload Failed* - Could not resolve GoFile server."
+        return 1
+    fi
+
+    link=$(curl -s -F "file=@${file}" "https://${server}.gofile.io/uploadFile" | jq -r '.data.downloadPage')
+    if [ -z "$link" ] || [ "$link" = "null" ]; then
+        echo "ERROR: Upload to GoFile failed or returned no link."
+        send_msg "*Upload Failed* - GoFile returned no download link."
+        return 1
+    fi
+
+    echo "$link"
 }
 
 # =========================================================
@@ -50,76 +65,83 @@ start_build() {
 ROM: ${ROM_NAME}
 Device: ${DEVICE}
 Android: ${ANDROID_VERSION}
-Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
-    
+Config: userdebug | gms"
+
     echo ">>>> Aggressive Cleanup..."
-    # Wipe device, vendor, and kernel trees completely to force a fresh download
-    rm -rf device/google/raven device/google/raviole device/google/gs101 hardware/google/pixel
-    rm -rf vendor/google/raven vendor/google/raviole vendor/lineage-priv vendor/google/camera
-    rm -rf kernel/google/raviole kernel/google/gs101
-    
-    # Destroy all old manifest configurations so repo is forced to start fresh
-    rm -rf .repo/local_manifests
-    
-    # Recreate the keys folder
+    rm -rf \
+        device/google/raven device/google/raviole device/google/gs101 hardware/google/pixel \
+        vendor/google/raven vendor/google/raviole vendor/lineage-priv vendor/google/camera \
+        kernel/google/raviole kernel/google/gs101 \
+        .repo/local_manifests
     mkdir -p vendor/lineage-priv/keys
 
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
-    
-    # Download official pixel manifests (suppress the fatal branch warning if it falls back to main)
+
+    echo ">>>> Cloning Pixel manifests (Branch 23.0)..."
     git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.0 .repo/local_manifests
-    
-    echo ">>>> Syncing repositories (This should take a few minutes)..."
-    # Added --force-remove-dirty to ensure repo cleans up corrupt projects
-    repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j$(nproc)
+
+    echo ">>>> Applying GCam LFS fix..."
+    sed -i '/vendor\/google\/camera/d' .repo/local_manifests/*.xml
+
+    echo ">>>> Syncing repositories..."
+    repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j"$(nproc)"
 
     echo ">>>> Fetching Git LFS..."
     if [ -d vendor/google/raven ]; then
-        cd vendor/google/raven && git lfs fetch --all && git lfs checkout && cd -
+        ( cd vendor/google/raven && git lfs fetch --all && git lfs checkout )
     fi
 
     echo ">>>> Verifying vendor tree exists..."
-    if[ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
-        echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is still missing!"
+    if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
+        echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is missing!"
         send_msg "*Build Failed* - Vendor blobs did not sync."
         exit 1
     fi
 
     echo ">>>> Setting up build environment..."
+    # set -e needs to be suspended across envsetup.sh as it deliberately uses
+    # functions that return non-zero during setup
+    set +e
     . build/envsetup.sh
-    axion ${DEVICE} userdebug gms
+    axion "${DEVICE}" userdebug gms
+    set -e
+
     mka installclean
 
     echo ">>>> Compiling..."
+    set +e
     m bacon
     BUILD_STATUS=$?
+    set -e
 
-    # Duration Calculation
-    END_TIME=$(date +%s)
-    DURATION=$(( (END_TIME - START_TIME) / 60 ))
-    
+    DURATION=$(( ($(date +%s) - START_TIME) / 60 ))
+
     if [[ $BUILD_STATUS -eq 0 ]]; then
-        STATUS="Success"
+        STATUS="Success ✅"
     else
-        STATUS="Failure (Exit Code: $BUILD_STATUS)"
+        STATUS="Failure (Exit Code: ${BUILD_STATUS}) ❌"
     fi
 
     send_msg "*Build Finished*
 Status: ${STATUS}
 Duration: ${DURATION} minutes"
-    
-    # Upload on Success
+
     if [[ $BUILD_STATUS -eq 0 ]]; then
         echo ">>>> Build successful, uploading to GoFile..."
-        ROM_ZIP=$(ls -t out/target/product/${DEVICE}/*.zip 2>/dev/null | head -n 1)
-        if[ -f "$ROM_ZIP" ]; then
+        ROM_ZIP=$(ls -t "out/target/product/${DEVICE}/"*.zip 2>/dev/null | head -n 1)
+        if [ -f "$ROM_ZIP" ]; then
             LINK=$(gofile_upload "$ROM_ZIP")
             send_msg "*Artifact Uploaded*
 File: $(basename "$ROM_ZIP")
-Link: $LINK"
+Link: ${LINK}"
+        else
+            echo "WARNING: No zip found in out/target/product/${DEVICE}/"
+            send_msg "*Warning* - Build succeeded but no output zip was found."
         fi
     fi
+
+    exit "$BUILD_STATUS"
 }
 
 start_build

@@ -67,21 +67,8 @@ Start Time: $(date +'%Y-%m-%d %H:%M:%S %Z')"
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
     
-    # Download official pixel manifests
-    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
-    
-    # Create the folder explicitly (just in case git clone fails)
-    mkdir -p .repo/local_manifests
-
-    echo ">>>> Injecting proprietary vendor manifests..."
-    cat <<EOF > .repo/local_manifests/raven_vendor.xml
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-  <remote name="muppets" fetch="https://gitlab.com/the-muppets" />
-  <project name="proprietary_vendor_google_raven" path="vendor/google/raven" remote="muppets" clone-depth="1" />
-  <project name="proprietary_vendor_google_raviole" path="vendor/google/raviole" remote="muppets" clone-depth="1" />
-</manifest>
-EOF
+    # Download official pixel manifests (suppress the fatal branch warning if it falls back to main)
+    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.2 .repo/local_manifests 2>/dev/null || git clone -q https://github.com/AxionAOSP/roomservice_pixels.git .repo/local_manifests
     
     echo ">>>> Syncing repositories (This should take a few minutes)..."
     # Added --force-remove-dirty to ensure repo cleans up corrupt projects
@@ -93,7 +80,7 @@ EOF
     fi
 
     echo ">>>> Verifying vendor tree exists..."
-    if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
+    if[ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
         echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is still missing!"
         send_msg "*Build Failed* - Vendor blobs did not sync."
         exit 1
@@ -126,7 +113,7 @@ Duration: ${DURATION} minutes"
     if [[ $BUILD_STATUS -eq 0 ]]; then
         echo ">>>> Build successful, uploading to GoFile..."
         ROM_ZIP=$(ls -t out/target/product/${DEVICE}/*.zip 2>/dev/null | head -n 1)
-        if [ -f "$ROM_ZIP" ]; then
+        if[ -f "$ROM_ZIP" ]; then
             LINK=$(gofile_upload "$ROM_ZIP")
             send_msg "*Artifact Uploaded*
 File: $(basename "$ROM_ZIP")

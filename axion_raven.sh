@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 # =========================================================
 # CONFIGURATION
 # =========================================================
@@ -76,19 +78,37 @@ Config: userdebug | gms"
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
 
-    echo ">>>> Cloning Pixel manifests (Branch 23.0)..."
-    git clone -q https://github.com/AxionAOSP/roomservice_pixels.git -b lineage-23.0 .repo/local_manifests
+    echo ">>>> Writing local manifest (LineageOS 23.2 + TheMuppets)..."
+    mkdir -p .repo/local_manifests
+    cat > .repo/local_manifests/local_manifest.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!-- Device trees -->
+  <project name="LineageOS/android_device_google_raviole"
+           path="device/google/raviole"
+           remote="github"
+           revision="lineage-23.2" />
+  <project name="LineageOS/android_device_google_raven"
+           path="device/google/raven"
+           remote="github"
+           revision="lineage-23.2" />
 
-    echo ">>>> Applying GCam LFS fix..."
-    sed -i '/vendor\/google\/camera/d' .repo/local_manifests/*.xml
+  <!-- Kernel -->
+  <project name="LineageOS/android_kernel_google_gs101"
+           path="kernel/google/gs101"
+           remote="github"
+           revision="lineage-23.2" />
+
+  <!-- Vendor blobs (pre-extracted, no LFS required) -->
+  <project name="TheMuppets/proprietary_vendor_google_raviole"
+           path="vendor/google/raviole"
+           remote="github"
+           revision="lineage-23.2" />
+</manifest>
+EOF
 
     echo ">>>> Syncing repositories..."
     repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j"$(nproc)"
-
-    echo ">>>> Fetching Git LFS..."
-    if [ -d vendor/google/raven ]; then
-        ( cd vendor/google/raven && git lfs fetch --all && git lfs checkout )
-    fi
 
     echo ">>>> Verifying vendor tree exists..."
     if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then

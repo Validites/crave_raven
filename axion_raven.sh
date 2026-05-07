@@ -78,7 +78,7 @@ Config: userdebug | gms"
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
 
-    echo ">>>> Writing local manifest (LineageOS 23.2 + TheMuppets)..."
+    echo ">>>> Writing local manifest (LineageOS 23.2 + engstk kernel + TheMuppets)..."
     mkdir -p .repo/local_manifests
     cat > .repo/local_manifests/local_manifest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -93,15 +93,15 @@ Config: userdebug | gms"
            remote="github"
            revision="lineage-23.2" />
 
-  <!-- Kernel -->
-  <project name="LineageOS/android_kernel_google_gs101"
+  <!-- Kernel: engstk gs_spark (blu_spark-16-susfs) -->
+  <project name="engstk/gs"
            path="kernel/google/gs101"
            remote="github"
-           revision="lineage-23.2" />
+           revision="blu_spark-16-susfs" />
 
-  <!-- Vendor blobs (pre-extracted, no LFS required) -->
-  <project name="TheMuppets/proprietary_vendor_google_raviole"
-           path="vendor/google/raviole"
+  <!-- Vendor blobs: raven-specific (pre-extracted, no LFS required) -->
+  <project name="TheMuppets/proprietary_vendor_google_raven"
+           path="vendor/google/raven"
            remote="github"
            revision="lineage-23.2" />
 </manifest>

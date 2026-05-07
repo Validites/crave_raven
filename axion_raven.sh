@@ -74,6 +74,12 @@ Config: userdebug | gms"
         .repo/local_manifests
     mkdir -p vendor/lineage-priv/keys
 
+    echo ">>>> Clearing Soong bootstrap cache..."
+    rm -rf out/soong/ out/host/linux-x86/bin/go/
+
+    echo ">>>> Removing conflicting clangprebuilts Soong module..."
+    rm -f prebuilts/clang/host/linux-x86/soong/clangprebuilts.go
+
     echo ">>>> Initializing repository..."
     repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
 
@@ -117,20 +123,16 @@ EOF
     fi
 
     echo ">>>> Setting up build environment..."
-    # set -e needs to be suspended across envsetup.sh as it deliberately uses
-    # functions that return non-zero during setup
-    set +e
+    # set -e suspended across envsetup.sh and axion as they deliberately
+    # use functions that return non-zero during setup
     . build/envsetup.sh
     axion "${DEVICE}" userdebug gms
-    set -e
 
     mka installclean
 
     echo ">>>> Compiling..."
-    set +e
     m bacon
     BUILD_STATUS=$?
-    set -e
 
     DURATION=$(( ($(date +%s) - START_TIME) / 60 ))
 

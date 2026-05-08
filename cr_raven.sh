@@ -88,10 +88,6 @@ Config: userdebug"
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <!-- Device trees -->
-  <project name="LineageOS/android_device_google_raviole"
-           path="device/google/raviole"
-           remote="github"
-           revision="lineage-23.2" />
   <project name="LineageOS/android_device_google_raven"
            path="device/google/raven"
            remote="github"

@@ -6,7 +6,7 @@
 TG_BOT_TOKEN="7302600160:AAFNxEr7Tma0zBgkMC2IIF39gcuT2F6ZT5Q"
 TG_CHAT_ID="7305843184"
 DEVICE="raven"
-ROM_NAME="AxionAOSP"
+ROM_NAME="crDroid"
 ANDROID_VERSION="16"
 export TZ="Europe/London"
 export BUILD_USERNAME="LW"
@@ -64,15 +64,14 @@ start_build() {
 ROM: ${ROM_NAME}
 Device: ${DEVICE}
 Android: ${ANDROID_VERSION}
-Config: userdebug | gms"
+Config: userdebug"
 
     echo ">>>> Aggressive Cleanup..."
     rm -rf \
         device/google/raven device/google/raviole device/google/gs101 hardware/google/pixel \
-        vendor/google/raven vendor/google/raviole vendor/lineage-priv vendor/google/camera \
+        vendor/google/raven vendor/google/raviole vendor/google/camera \
         kernel/google/raviole kernel/google/gs101 \
         .repo/local_manifests
-    mkdir -p vendor/lineage-priv/keys
 
     echo ">>>> Clearing Soong bootstrap cache..."
     rm -rf out/soong/ out/host/linux-x86/bin/go/
@@ -81,9 +80,9 @@ Config: userdebug | gms"
     rm -f prebuilts/clang/host/linux-x86/soong/clangprebuilts.go
 
     echo ">>>> Initializing repository..."
-    repo init -q -u https://github.com/AxionAOSP/android.git -b lineage-23.2 --git-lfs
+    repo init -q -u https://github.com/crdroidandroid/android.git -b 16.0 --git-lfs
 
-    echo ">>>> Writing local manifest (LineageOS 23.2 + engstk kernel + TheMuppets)..."
+    echo ">>>> Writing local manifest (crDroid 16.0 + engstk kernel + TheMuppets)..."
     mkdir -p .repo/local_manifests
     cat > .repo/local_manifests/local_manifest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -123,10 +122,8 @@ EOF
     fi
 
     echo ">>>> Setting up build environment..."
-    # set -e suspended across envsetup.sh and axion as they deliberately
-    # use functions that return non-zero during setup
     . build/envsetup.sh
-    axion "${DEVICE}" userdebug gms
+    breakfast "${DEVICE}" userdebug
 
     mka installclean
 

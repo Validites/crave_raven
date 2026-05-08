@@ -96,6 +96,10 @@ Config: userdebug"
            path="device/google/raven"
            remote="github"
            revision="lineage-23.2" />
+  <project name="LineageOS/android_device_google_gs101"
+           path="device/google/gs101"
+           remote="github"
+           revision="lineage-23.2" />
 
   <!-- Kernel: engstk gs_spark (blu_spark-16-susfs) -->
   <project name="engstk/gs"
@@ -112,7 +116,7 @@ Config: userdebug"
 EOF
 
     echo ">>>> Syncing repositories..."
-    repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle -j"$(nproc)"
+    /opt/crave/resync.sh
 
     echo ">>>> Verifying vendor tree exists..."
     if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then

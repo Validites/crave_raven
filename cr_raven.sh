@@ -3,11 +3,14 @@
 # =========================================================
 # CONFIGURATION
 # =========================================================
+
 TG_BOT_TOKEN="7302600160:AAFNxEr7Tma0zBgkMC2IIF39gcuT2F6ZT5Q"
 TG_CHAT_ID="7305843184"
-DEVICE="raven"
-ROM_NAME="crDroid"
-ANDROID_VERSION="16"
+
+DEVICE="starlte"
+ROM_NAME="LineageOS"
+ANDROID_VERSION="23.2"
+
 export TZ="Europe/London"
 export BUILD_USERNAME="LW"
 export BUILD_HOSTNAME="aura"
@@ -15,6 +18,7 @@ export BUILD_HOSTNAME="aura"
 # =========================================================
 # FUNCTIONS
 # =========================================================
+
 send_msg() {
     curl -s \
         -d "chat_id=${TG_CHAT_ID}" \
@@ -38,6 +42,7 @@ gofile_upload() {
     fi
 
     server=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
+
     if [ -z "$server" ] || [ "$server" = "null" ]; then
         echo "ERROR: Could not resolve GoFile server."
         send_msg "*Upload Failed* - Could not resolve GoFile server."
@@ -45,6 +50,7 @@ gofile_upload() {
     fi
 
     link=$(curl -s -F "file=@${file}" "https://${server}.gofile.io/uploadFile" | jq -r '.data.downloadPage')
+
     if [ -z "$link" ] || [ "$link" = "null" ]; then
         echo "ERROR: Upload to GoFile failed or returned no link."
         send_msg "*Upload Failed* - GoFile returned no download link."
@@ -57,57 +63,83 @@ gofile_upload() {
 # =========================================================
 # BUILD LOGIC
 # =========================================================
+
 start_build() {
+
     START_TIME=$(date +%s)
 
     send_msg "*Build Started*
 ROM: ${ROM_NAME}
-Device: ${DEVICE}
+Device: ${DEVICE} (Galaxy S9)
 Android: ${ANDROID_VERSION}
 Config: userdebug"
 
     echo ">>>> Aggressive Cleanup..."
     rm -rf \
-        device/google/raven device/google/raviole device/google/gs101 hardware/google/pixel \
-        vendor/google/raven vendor/google/raviole vendor/google/camera \
-        kernel/google/raviole kernel/google/gs101 \
+        device/samsung/starlte \
+        device/samsung/exynos9810-common \
+        kernel/samsung/exynos9810 \
+        vendor/samsung/starlte \
+        vendor/samsung/exynos9810-common \
+        vendor/samsung \
+        hardware/samsung_slsi-linaro/exynos \
         .repo/local_manifests
 
     echo ">>>> Clearing Soong bootstrap cache..."
     rm -rf out/soong/ out/host/linux-x86/bin/go/
 
-    echo ">>>> Removing conflicting clangprebuilts Soong module..."
-    rm -f prebuilts/clang/host/linux-x86/soong/clangprebuilts.go
-
     echo ">>>> Initializing repository..."
-    repo init -q -u https://github.com/crdroidandroid/android.git -b 16.0 --git-lfs
+    repo init -q -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs
 
-    echo ">>>> Writing local manifest (crDroid 16.0 + engstk kernel + TheMuppets)..."
+    echo ">>>> Writing local manifest (LineageOS 23.2 + ExyHyperBrick sources)..."
     mkdir -p .repo/local_manifests
+
     cat > .repo/local_manifests/local_manifest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-  <!-- Device trees -->
-  <project name="LineageOS/android_device_google_raven"
-           path="device/google/raven"
-           remote="github"
-           revision="lineage-23.2" />
-  <project name="LineageOS/android_device_google_gs101"
-           path="device/google/gs101"
-           remote="github"
-           revision="lineage-23.2" />
 
-  <!-- Kernel: engstk gs_spark (blu_spark-16-susfs) -->
-  <project name="engstk/gs"
-           path="kernel/google/gs101"
-           remote="github"
-           revision="blu_spark-16-susfs" />
+    <!-- Device tree: starlte-specific -->
+    <project name="ExyHyperBrick/android_device_samsung_starlte"
+             path="device/samsung/starlte"
+             remote="github"
+             revision="lineage-23.2" />
 
-  <!-- Vendor blobs: raven-specific (pre-extracted, no LFS required) -->
-  <project name="TheMuppets/proprietary_vendor_google_raven"
-           path="vendor/google/raven"
-           remote="github"
-           revision="lineage-23.2" />
+    <!-- Device tree: exynos9810 common (shared by S9/S9+/Note9) -->
+    <project name="ExyHyperBrick/android_device_samsung_exynos9810-common"
+             path="device/samsung/exynos9810-common"
+             remote="github"
+             revision="lineage-23.2" />
+
+    <!-- Kernel: Exynos 9810 -->
+    <project name="ExyHyperBrick/android_kernel_samsung_exynos9810"
+             path="kernel/samsung/exynos9810"
+             remote="github"
+             revision="lineage-23.2" />
+
+    <!-- Vendor blobs: starlte-specific -->
+    <project name="ExyHyperBrick/proprietary_vendor_samsung_starlte"
+             path="vendor/samsung/starlte"
+             remote="github"
+             revision="lineage-23.2" />
+
+    <!-- Vendor blobs: exynos9810 common -->
+    <project name="ExyHyperBrick/proprietary_vendor_samsung_exynos9810-common"
+             path="vendor/samsung/exynos9810-common"
+             remote="github"
+             revision="lineage-23.2" />
+
+    <!-- Vendor blobs: Samsung common (camera libs, etc.) -->
+    <project name="ExyHyperBrick/proprietary_vendor_samsung"
+             path="vendor/samsung"
+             remote="github"
+             revision="lineage-23.2" />
+
+    <!-- Hardware HALs: Samsung LSI / Linaro Exynos -->
+    <project name="ExyHyperBrick/android_hardware_samsung_slsi-linaro_exynos"
+             path="hardware/samsung_slsi-linaro/exynos"
+             remote="github"
+             revision="lineage-23.2" />
+
 </manifest>
 EOF
 
@@ -115,8 +147,8 @@ EOF
     /opt/crave/resync.sh
 
     echo ">>>> Verifying vendor tree exists..."
-    if [ ! -f "vendor/google/raven/raven-vendor.mk" ]; then
-        echo "CRITICAL ERROR: vendor/google/raven/raven-vendor.mk is missing!"
+    if [ ! -f "vendor/samsung/starlte/starlte-vendor.mk" ]; then
+        echo "CRITICAL ERROR: vendor/samsung/starlte/starlte-vendor.mk is missing!"
         send_msg "*Build Failed* - Vendor blobs did not sync."
         exit 1
     fi
@@ -129,6 +161,7 @@ EOF
 
     echo ">>>> Compiling..."
     m bacon
+
     BUILD_STATUS=$?
 
     DURATION=$(( ($(date +%s) - START_TIME) / 60 ))
@@ -146,6 +179,7 @@ Duration: ${DURATION} minutes"
     if [[ $BUILD_STATUS -eq 0 ]]; then
         echo ">>>> Build successful, uploading to GoFile..."
         ROM_ZIP=$(ls -t "out/target/product/${DEVICE}/"*.zip 2>/dev/null | head -n 1)
+
         if [ -f "$ROM_ZIP" ]; then
             LINK=$(gofile_upload "$ROM_ZIP")
             send_msg "*Artifact Uploaded*

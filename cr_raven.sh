@@ -114,7 +114,7 @@ Config: userdebug"
     <project name="ExyHyperBrick/android_kernel_samsung_exynos9810"
              path="kernel/samsung/exynos9810"
              remote="github"
-             revision="lineage-23.2" />
+             revision="lineage-23.2-bpf-test" />
 
     <!-- Vendor blobs: starlte-specific -->
     <project name="ExyHyperBrick/proprietary_vendor_samsung_starlte"
@@ -145,6 +145,12 @@ EOF
 
     echo ">>>> Syncing repositories..."
     /opt/crave/resync.sh
+
+    echo ">>>> Injecting kernel localversion (🇺🇦)..."
+    # The kernel build system concatenates all localversion* files in the
+    # source root into the version string, producing e.g. 4.9.337-🇺🇦-starlte.
+    # This is non-invasive — no Makefile edits needed.
+    printf -- '-🇺🇦-starlte' > kernel/samsung/exynos9810/localversion-custom
 
     echo ">>>> Verifying vendor tree exists..."
     if [ ! -f "vendor/samsung/starlte/starlte-vendor.mk" ]; then

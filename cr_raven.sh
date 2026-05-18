@@ -83,6 +83,7 @@ Config: userdebug"
         vendor/samsung/exynos9810-common \
         vendor/samsung \
         hardware/samsung_slsi-linaro/exynos \
+        hardware/samsung_slsi-linaro/config \
         .repo/local_manifests
 
     echo ">>>> Clearing Soong bootstrap cache..."
@@ -140,6 +141,12 @@ Config: userdebug"
              remote="github"
              revision="lineage-23.2" />
 
+    <!-- Hardware config: Samsung LSI / Linaro config (provides config.mk, required by common.mk:10) -->
+    <project name="LineageOS/android_hardware_samsung_slsi-linaro_config"
+             path="hardware/samsung_slsi-linaro/config"
+             remote="github"
+             revision="lineage-23.2" />
+
 </manifest>
 EOF
 
@@ -161,7 +168,9 @@ EOF
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh
-    breakfast "${DEVICE}" userdebug
+    # Use lunch directly — breakfast triggers roomservice which tries to find
+    # starlte in the official LineageOS org and bails when it can't.
+    lunch "lineage_${DEVICE}-userdebug"
 
     mka installclean
 

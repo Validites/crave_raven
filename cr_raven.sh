@@ -208,13 +208,7 @@ EOF
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh
-    # Android 14 (lineage-23.0) uses the three-part lunch format:
-    # <product>-<release>-<variant>. trunk_staging is the correct release
-    # token for unofficial/in-development device trees.
-    # installclean runs AFTER lunch so the product is registered before any
-    # make call — otherwise make triggers roomservice trying to find starlte
-    # in the official LineageOS org.
-    lunch "lineage_${DEVICE}-trunk_staging-userdebug"
+    breakfast "${DEVICE}" userdebug
 
     echo ">>>> Cleaning previous output..."
     mka installclean

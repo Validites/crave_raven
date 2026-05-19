@@ -9,7 +9,7 @@ TG_CHAT_ID="7305843184"
 
 DEVICE="starlte"
 ROM_NAME="LineageOS"
-ANDROID_VERSION="23.2"
+ANDROID_VERSION="23.0"
 
 export TZ="Europe/London"
 export BUILD_USERNAME="LW"
@@ -78,73 +78,126 @@ Config: userdebug"
     rm -rf \
         device/samsung/starlte \
         device/samsung/exynos9810-common \
+        device/samsung_slsi/sepolicy \
         kernel/samsung/exynos9810 \
         vendor/samsung/starlte \
         vendor/samsung/exynos9810-common \
-        vendor/samsung \
-        hardware/samsung_slsi-linaro/exynos \
+        hardware/samsung \
+        hardware/samsung_slsi-linaro \
+        system/tools/mkbootimg \
+        external/cronet \
         .repo/local_manifests
 
     echo ">>>> Clearing Soong bootstrap cache..."
     rm -rf out/soong/ out/host/linux-x86/bin/go/
 
     echo ">>>> Initializing repository..."
-    repo init -q -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs
+    repo init -q -u https://github.com/LineageOS/android.git -b lineage-23.0 --git-lfs
 
-    echo ">>>> Writing local manifest (LineageOS 23.2 + ExyHyperBrick sources)..."
+    echo ">>>> Writing local manifest (LineageOS 23.0 + ExyHyperBrick sources)..."
     mkdir -p .repo/local_manifests
 
+    # Transcribed verbatim from ExyHyperBrick/local_manifests, starlte tree.
+    # Only star2lte/crownlte device+vendor entries are omitted (not needed for starlte).
     cat > .repo/local_manifests/local_manifest.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
 
-    <!-- Device tree: starlte-specific -->
-    <project name="ExyHyperBrick/android_device_samsung_starlte"
-             path="device/samsung/starlte"
-             remote="github"
-             revision="lineage-23.2" />
+  <!-- Kernel -->
+  <project name="ExyHyperBrick/android_kernel_samsung_exynos9810"
+           path="kernel/samsung/exynos9810"
+           remote="github"
+           revision="lineage-23.0-bpf-test6" />
 
-    <!-- Device tree: exynos9810 common (shared by S9/S9+/Note9) -->
-    <project name="ExyHyperBrick/android_device_samsung_exynos9810-common"
-             path="device/samsung/exynos9810-common"
-             remote="github"
-             revision="lineage-23.2" />
+  <!-- Device trees -->
+  <project name="ExyHyperBrick/android_device_samsung_exynos9810-common"
+           path="device/samsung/exynos9810-common"
+           remote="github"
+           revision="lineage-23.0" />
 
-    <!-- Kernel: Exynos 9810 -->
-    <project name="ExyHyperBrick/android_kernel_samsung_exynos9810"
-             path="kernel/samsung/exynos9810"
-             remote="github"
-             revision="lineage-23.2" />
+  <project name="ExyHyperBrick/android_device_samsung_starlte"
+           path="device/samsung/starlte"
+           remote="github"
+           revision="lineage-23.0" />
 
-    <!-- Vendor blobs: starlte-specific -->
-    <project name="ExyHyperBrick/proprietary_vendor_samsung_starlte"
-             path="vendor/samsung/starlte"
-             remote="github"
-             revision="lineage-23.2" />
+  <!-- Vendor blobs -->
+  <project name="ExyHyperBrick/proprietary_vendor_samsung_exynos9810-common"
+           path="vendor/samsung/exynos9810-common"
+           remote="github"
+           revision="lineage-23.0" />
 
-    <!-- Vendor blobs: exynos9810 common -->
-    <project name="ExyHyperBrick/proprietary_vendor_samsung_exynos9810-common"
-             path="vendor/samsung/exynos9810-common"
-             remote="github"
-             revision="lineage-23.2" />
+  <project name="ExyHyperBrick/proprietary_vendor_samsung_starlte"
+           path="vendor/samsung/starlte"
+           remote="github"
+           revision="lineage-23.0" />
 
-    <!-- Vendor blobs: Samsung common (camera libs, etc.) -->
-    <project name="ExyHyperBrick/proprietary_vendor_samsung"
-             path="vendor/samsung"
-             remote="github"
-             revision="lineage-23.2" />
+  <!-- Samsung SEPolicy (LineageOS upstream) -->
+  <project name="LineageOS/android_device_samsung_slsi_sepolicy"
+           path="device/samsung_slsi/sepolicy"
+           remote="github"
+           revision="lineage-23.0" />
 
-    <!-- Hardware HALs: Samsung LSI / Linaro Exynos -->
-    <project name="ExyHyperBrick/android_hardware_samsung_slsi-linaro_exynos"
-             path="hardware/samsung_slsi-linaro/exynos"
-             remote="github"
-             revision="lineage-23.2" />
+  <!-- Samsung hardware (pinned commit — matches upstream manifest exactly) -->
+  <project name="LineageOS/android_hardware_samsung"
+           path="hardware/samsung"
+           remote="github"
+           revision="33f74940ad17587bacffcd40a353ba2c50c9ff30" />
+
+  <!-- Samsung LSI / Linaro hardware stack (all from LineageOS upstream) -->
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_config"
+           path="hardware/samsung_slsi-linaro/config"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_exynos"
+           path="hardware/samsung_slsi-linaro/exynos"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_exynos5"
+           path="hardware/samsung_slsi-linaro/exynos5"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_graphics"
+           path="hardware/samsung_slsi-linaro/graphics"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_interfaces"
+           path="hardware/samsung_slsi-linaro/interfaces"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <project name="LineageOS/android_hardware_samsung_slsi-linaro_openmax"
+           path="hardware/samsung_slsi-linaro/openmax"
+           remote="github"
+           revision="lineage-23.0" />
+
+  <!-- Replace AOSP mkbootimg and cronet with LineageOS forks (required by device tree) -->
+  <!-- repopick -f 433124 433126 433128 433103 433141 433143 433174 433320 433617 -->
+  <remove-project name="platform/system/tools/mkbootimg" />
+  <remove-project name="platform/external/cronet" />
+  <project name="LineageOS/android_system_tools_mkbootimg"
+           path="system/tools/mkbootimg"
+           remote="github"
+           revision="lineage-23.0" />
+  <project name="LineageOS/android_external_cronet"
+           path="external/cronet"
+           remote="github"
+           revision="lineage-23.0" />
 
 </manifest>
 EOF
 
     echo ">>>> Syncing repositories..."
     /opt/crave/resync.sh
+
+    echo ">>>> Injecting kernel localversion (🇺🇦)..."
+    # The kernel build system concatenates all localversion* files in the
+    # source root into the version string, producing e.g. 4.9.337-🇺🇦-starlte.
+    # This is non-invasive — no Makefile edits needed.
+    printf -- '-🇺🇦-starlte' > kernel/samsung/exynos9810/localversion-custom
 
     echo ">>>> Verifying vendor tree exists..."
     if [ ! -f "vendor/samsung/starlte/starlte-vendor.mk" ]; then
@@ -155,8 +208,15 @@ EOF
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh
-    breakfast "${DEVICE}" userdebug
+    # Android 14 (lineage-23.0) uses the three-part lunch format:
+    # <product>-<release>-<variant>. trunk_staging is the correct release
+    # token for unofficial/in-development device trees.
+    # installclean runs AFTER lunch so the product is registered before any
+    # make call — otherwise make triggers roomservice trying to find starlte
+    # in the official LineageOS org.
+    lunch "lineage_${DEVICE}-trunk_staging-userdebug"
 
+    echo ">>>> Cleaning previous output..."
     mka installclean
 
     echo ">>>> Compiling..."

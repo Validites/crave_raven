@@ -83,7 +83,6 @@ Config: userdebug"
         vendor/samsung/exynos9810-common \
         vendor/samsung \
         hardware/samsung_slsi-linaro/exynos \
-        hardware/samsung_slsi-linaro/config \
         .repo/local_manifests
 
     echo ">>>> Clearing Soong bootstrap cache..."
@@ -115,7 +114,7 @@ Config: userdebug"
     <project name="ExyHyperBrick/android_kernel_samsung_exynos9810"
              path="kernel/samsung/exynos9810"
              remote="github"
-             revision="lineage-23.2-bpf-test" />
+             revision="lineage-23.2" />
 
     <!-- Vendor blobs: starlte-specific -->
     <project name="ExyHyperBrick/proprietary_vendor_samsung_starlte"
@@ -141,23 +140,11 @@ Config: userdebug"
              remote="github"
              revision="lineage-23.2" />
 
-    <!-- Hardware config: Samsung LSI / Linaro config (provides config.mk, required by common.mk:10) -->
-    <project name="LineageOS/android_hardware_samsung_slsi-linaro_config"
-             path="hardware/samsung_slsi-linaro/config"
-             remote="github"
-             revision="lineage-23.2" />
-
 </manifest>
 EOF
 
     echo ">>>> Syncing repositories..."
     /opt/crave/resync.sh
-
-    echo ">>>> Injecting kernel localversion (🇺🇦)..."
-    # The kernel build system concatenates all localversion* files in the
-    # source root into the version string, producing e.g. 4.9.337-🇺🇦-starlte.
-    # This is non-invasive — no Makefile edits needed.
-    printf -- '-🇺🇦-starlte' > kernel/samsung/exynos9810/localversion-custom
 
     echo ">>>> Verifying vendor tree exists..."
     if [ ! -f "vendor/samsung/starlte/starlte-vendor.mk" ]; then
@@ -168,9 +155,7 @@ EOF
 
     echo ">>>> Setting up build environment..."
     . build/envsetup.sh
-    # Use lunch directly — breakfast triggers roomservice which tries to find
-    # starlte in the official LineageOS org and bails when it can't.
-    lunch "lineage_${DEVICE}-userdebug"
+    breakfast "${DEVICE}" userdebug
 
     mka installclean
 

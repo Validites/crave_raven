@@ -13,7 +13,7 @@ TG_CHAT_ID="7305843184"
 #   virtio_x86_64      x86-64
 #   virtio_x86_64_tv   x86-64 (Android TV)
 #   virtio_x86_64_car  x86-64 (Automotive)
-DEVICE="virtio_arm64only"
+DEVICE="virtio_x86_64"
 
 ROM_NAME="LineageOS"
 # Only lineage-21.0 is currently supported for virtio targets per the wiki.

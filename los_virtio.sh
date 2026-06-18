@@ -130,9 +130,9 @@ Format: ${BUILD_FORMAT}"
         .repo/local_manifests
 
     # virtio targets ship no device/vendor tree in AOSP; no extra dirs to wipe.
-    # Soong cache is still worth clearing to avoid stale bootstrap issues.
-    echo ">>>> Clearing Soong bootstrap cache..."
-    rm -rf out/soong/ out/host/linux-x86/bin/go/
+    # Turns out clearing the dirs below break Crave rules.. skipping!
+    # echo ">>>> Clearing Soong bootstrap cache..."
+    # rm -rf out/soong/ out/host/linux-x86/bin/go/
 
     echo ">>>> Initializing repository (${LINEAGE_BRANCH})..."
     # --git-lfs is required — several virtio repos use LFS.

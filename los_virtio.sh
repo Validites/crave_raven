@@ -16,20 +16,27 @@ TG_CHAT_ID="7305843184"
 DEVICE="virtio_x86_64"
 
 ROM_NAME="LineageOS"
-# Only lineage-21.0 is currently supported for virtio targets per the wiki.
 LINEAGE_BRANCH="lineage-23.2"
 ANDROID_VERSION="23.2"
 
 # Virtual A/B is default (requires 13 GiB disk).
 # Set to "false" to build A-only (requires 5 GiB disk, smaller image).
-AB_OTA_UPDATER="${AB_OTA_UPDATER:-true}"
+AB_OTA_UPDATER="${AB_OTA_UPDATER:-false}"
 
 # Output format: "img" (default) or "iso" (x86_64 targets only).
-BUILD_FORMAT="${BUILD_FORMAT:-img}"
+BUILD_FORMAT="${BUILD_FORMAT:-iso}"
 
 export TZ="Europe/London"
 export BUILD_USERNAME="LW"
 export BUILD_HOSTNAME="aura"
+
+# Fix: mtools (mcopy) fails with "Error converting to codepage 850" in minimal
+# build environments because the host locale doesn't supply the codepage tables.
+# LC_ALL=C forces POSIX/ASCII behaviour; MTOOLS_NO_VFAT=1 disables the VFAT
+# long-name path that triggers the conversion.  Both are needed for x86_64
+# targets where GRUB embeds a persist.img FAT image during espimage-install.
+export LC_ALL=C
+export MTOOLS_NO_VFAT=1
 
 # =========================================================
 # FUNCTIONS

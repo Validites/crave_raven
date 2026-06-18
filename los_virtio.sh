@@ -173,12 +173,30 @@ Format: ${BUILD_FORMAT}"
     fi
 
     echo ">>>> Compiling (make ${MAKE_TARGET})..."
-    # The prebuilt mtools binary in prebuilts/bootmgr/ is launched through its
-    # own ld-linux-x86-64.so.2, so exported env vars (LC_ALL, MTOOLS_NO_VFAT)
-    # are ignored.  The binary still reads ~/.mtoolsrc at runtime, so write
-    # the flag there instead to suppress the "codepage 850" error on FAT image
-    # creation (persist.img / grubenv step for x86_64 targets).
-    echo 'MTOOLS_NO_VFAT=1' > ~/.mtoolsrc
+    # The prebuilt mtools binaries (mformat/mcopy) in prebuilts/bootmgr/ are
+    # invoked through their own ld-linux-x86-64.so.2, so neither exported env
+    # vars nor ~/.mtoolsrc are respected — causing "Error converting to codepage
+    # 850 Invalid argument" when building the FAT persist.img for x86_64 targets.
+    #
+    # Fix: replace the prebuilt binaries with shim wrapper scripts that export
+    # MTOOLS_NO_VFAT=1 before exec-ing the real binary via the prebuilt linker.
+    BOOTMGR="prebuilts/bootmgr"
+    BOOTMGR_LD="${BOOTMGR}/lib64/ld-linux-x86-64.so.2"
+    for TOOL in mformat mcopy; do
+        REAL="${BOOTMGR}/tools/linux-x86/bin/${TOOL}.real"
+        SHIM="${BOOTMGR}/tools/linux-x86/bin/${TOOL}"
+        if [[ ! -f "$REAL" ]]; then
+            mv "$SHIM" "$REAL"
+            cat > "$SHIM" <<EOF
+#!/bin/sh
+export MTOOLS_NO_VFAT=1
+export MTOOLSRC=/dev/null
+exec LD_LIBRARY_PATH="${PWD}/${BOOTMGR}/lib64" "${PWD}/${BOOTMGR_LD}" "${PWD}/${REAL}" "\$@"
+EOF
+            chmod +x "$SHIM"
+            echo ">>>> Shimmed ${TOOL} to suppress codepage 850 error."
+        fi
+    done
     m "${MAKE_TARGET}"
 
     BUILD_STATUS=$?

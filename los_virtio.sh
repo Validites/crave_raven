@@ -173,6 +173,12 @@ Format: ${BUILD_FORMAT}"
     fi
 
     echo ">>>> Compiling (make ${MAKE_TARGET})..."
+    # The prebuilt mtools binary in prebuilts/bootmgr/ is launched through its
+    # own ld-linux-x86-64.so.2, so exported env vars (LC_ALL, MTOOLS_NO_VFAT)
+    # are ignored.  The binary still reads ~/.mtoolsrc at runtime, so write
+    # the flag there instead to suppress the "codepage 850" error on FAT image
+    # creation (persist.img / grubenv step for x86_64 targets).
+    echo 'MTOOLS_NO_VFAT=1' > ~/.mtoolsrc
     m "${MAKE_TARGET}"
 
     BUILD_STATUS=$?
